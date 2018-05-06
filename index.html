@@ -11,35 +11,31 @@
   </head>
   <body>
   
-  <div class="container">
-    <div class="options-box">
-      <header>
-        Locations
-      </header>
-      
-      <div class="search-box">
-        <input id="place-search" type="text" placeholder="station location">
-        <input id="show-list" type="button" value="fliter">
+    <div class="container">
+    
+      <div class="options-box" data-bind="visible: optionsBoxShow">
+        <header>
+          Locations
+        </header>
+        <div class="search-box">
+          <input id="place-search" type="text" placeholder="station location">
+          <input id="show-list" type="button" value="fliter">
+        </div>
+        <ul class="location-list"  data-bind="foreach: locationList">
+          <li data-bind="text: $data.title"></li>
+        </ul>
       </div>
       
-      <ul class="location-lists">
-        <li>location 1</li>
-        <li>location 2</li>
-        <li>location 3</li>
-      </ul>
+      <div class="map-box" data-bind="css: { 'map-box-full' : !optionsBoxShow() }">
+        <header>
+          <span class="options-btn" data-bind="click: toggleOptionsBox">+</span>
+          <span class="title">街区地图</span>
+        </header>
+        
+        <div id="map"></div>
+      </div>
       
     </div>
-    
-    <div class="main-box">
-      <header>
-        <span class="options-btn">+</span>
-        <span class="title">街区地图</span>
-      </header>
-      
-      <div id="map"></div>
-    </div>
-    
-  </div>
     
   </body>
 </html>
