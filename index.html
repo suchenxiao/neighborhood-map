@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Neighborhood Map</title>
+  <link rel="stylesheet" href="css/css.css">
+  <script src="js/jquery-3.3.1.min.js"></script>
+  <script src="js/knockout-3.2.0.js"></script>
+  <script src="js/js.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC_tE8_pY_gRt_MWsmrG2sGOBQHr4aYdJM&v=3&callback=initMap"></script>
+  </head>
+  <body>
+  
+  <div class="container">
+    <div class="options-box">
+      <header>
+        Locations
+      </header>
+      
+      <div class="search-box">
+        <input id="place-search" type="text" placeholder="station location">
+        <input id="show-list" type="button" value="fliter">
+      </div>
+      
+      <ul class="location-lists">
+        <li>location 1</li>
+        <li>location 2</li>
+        <li>location 3</li>
+      </ul>
+      
+    </div>
+    
+    <div class="main-box">
+      <header>
+        <span class="options-btn">+</span>
+        <span class="title">街区地图</span>
+      </header>
+      
+      <div id="map"></div>
+    </div>
+    
+  </div>
+    
+  </body>
+</html>
