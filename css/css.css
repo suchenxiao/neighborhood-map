@@ -38,7 +38,7 @@ body {
   padding: 0;
   float:left;
 }
-#place-search{
+#places-search{
   width: 170px;
   padding-left:10px;
 }
@@ -57,6 +57,7 @@ body {
 }
 .options-box>ul.location-list>li:hover {
   background: #000;
+  text-indent: 10px;
 }
 
 /* 地图区域样式 */
