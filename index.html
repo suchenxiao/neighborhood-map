@@ -22,7 +22,7 @@
           <input id="show-list" type="button" value="搜索">
         </div>
         <ul class="location-list"  data-bind="foreach: locationList">
-          <li data-bind="text: $data.title"></li>
+          <li data-bind="text: $data.title, event: {mouseover: $parent.setTempMarker, mouseout: $parent.clearTempMarker}, click: $parent.setMarker"></li>
         </ul>
       </div>
       

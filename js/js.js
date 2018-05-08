@@ -7,14 +7,14 @@ function init() {
 	zoom: 13
   });
   
-  // 初始化搜索框功能
-  SearchBox.init();
   // 初始化标记列表、样式
   Mark.init();
   // 初始化信息窗口
   Info.init();
   // 绘制初始地点标记
   Location.init();
+  // 加载搜索框功能
+  SearchBox.init();
   
   // 加载视图模型
   ko.applyBindings(new ViewModel());
@@ -32,11 +32,14 @@ var Mark = {
     // 储备标记列表
     this.markers = [];
 	
+	// 储备临时标记
+	this.tempMarker = null;
+	
     // 设置标记默认样式
-	this.defaultIcon = this.makeMarkerIcon('0091ff');
+	this.defaultIcon = this.makeMarkerIcon('66ccff');
 	
 	// 设置标记焦点样式
-	this.highlightedIcon =  this.makeMarkerIcon('ffff24');
+	this.highlightedIcon =  this.makeMarkerIcon('ff3333');
 	
   },
     
@@ -51,8 +54,9 @@ var Mark = {
   },
   
   // 隐藏标记列表
-  hideMarkers : function(markers) {
+  hideMarkers : function() {
 	this.markers.forEach(function(marker) {
+	  Info.infowindow.setContent('');
 	  marker.setMap(null);
 	});
   },
@@ -68,6 +72,27 @@ var Mark = {
 	  new google.maps.Size(21,34));
 	return markerImage;
   },
+  
+  // 设置位置标记
+  mark : function(location){
+	var marker = new google.maps.Marker({
+	  position: location.location,
+	  title: location.title,
+	  animation: google.maps.Animation.DROP,
+	  icon: Mark.defaultIcon,
+	  id: location.index
+	});
+	marker.addListener('click', function() {
+	  Info.populate(this);
+	});
+	marker.addListener('mouseover', function() {
+	  this.setIcon(Mark.highlightedIcon);
+	});
+	marker.addListener('mouseout', function() {
+	  this.setIcon(Mark.defaultIcon);
+	});
+	return marker;
+  }
   
 };
 
@@ -156,26 +181,7 @@ var Location = {
   init : function() {
     // 为初始地点绘制标记
 	this.locations.forEach(function(locationItem){
-	  var position = locationItem.location;
-	  var title = locationItem.title;
-	  var id = locationItem.index;
-	  var marker = new google.maps.Marker({
-		position: position,
-		title: title,
-		animation: google.maps.Animation.DROP,
-		icon: Mark.defaultIcon,
-		id: id
-	  });
-	  marker.addListener('click', function() {
-		Info.populate(this);
-	  });
-	  marker.addListener('mouseover', function() {
-		this.setIcon(Mark.highlightedIcon);
-	  });
-	  marker.addListener('mouseout', function() {
-		this.setIcon(Mark.defaultIcon);
-	  });
-	  // 放入markers列表
+	  var marker = Mark.mark(locationItem);
 	  Mark.markers.push(marker);
 	});
     Mark.showMarkers();
@@ -196,16 +202,45 @@ var SearchBox = {
 // 视图模型
 var ViewModel = function() {
   var self = this;
-  
+
+  // 边栏显示，隐藏功能
+  this.optionsBoxShow = ko.observable(true);
+  this.toggleOptionsBox = function() {
+	self.optionsBoxShow(!self.optionsBoxShow());
+  }
+    
+  // 绑定位置列表
   this.locationList = ko.observableArray([]);
   Location.locations.forEach(function(locationItem){
 	self.locationList.push(ko.observable(locationItem));
   });
   
-  this.optionsBoxShow = ko.observable(true);
-  this.toggleOptionsBox = function() {
-	self.optionsBoxShow(!self.optionsBoxShow());
-  }
+  var previewMarker = false;
+  
+  // 预览位置标记
+  this.setTempMarker = function(clickedPosition) {
+	Mark.hideMarkers();
+	if(Mark.tempMarker!=null) Mark.tempMarker.setMap(null);
+	Mark.tempMarker = Mark.mark(clickedPosition);
+	Mark.tempMarker.setMap(map);
+	previewMarker = true;
+  };
+  
+  // 取消预览
+  this.clearTempMarker = function() {
+	if(previewMarker) {
+	  Mark.tempMarker.setMap(null);
+	  Mark.tempMarker = null;
+	  Mark.showMarkers();
+	  previewMarker = false;
+	}
+  };
+  
+  // 点击位置列表
+  this.setMarker = function(clickedPosition) {
+	self.setTempMarker(clickedPosition);
+	previewMarker = false;
+  };
   
 };
 	
