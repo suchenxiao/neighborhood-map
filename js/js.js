@@ -223,6 +223,15 @@ var ViewModel = function() {
 	if(Mark.tempMarker!=null) Mark.tempMarker.setMap(null);
 	Mark.tempMarker = Mark.mark(clickedPosition);
 	Mark.tempMarker.setMap(map);
+	
+	// 此方法导致直接跳转到对应地图区域，视觉效果较差
+	// TODO: 视角平缓移动到目标位置
+	var zoom = map.zoom;
+	var bounds = new google.maps.LatLngBounds();
+	bounds.extend(Mark.tempMarker.position);
+	map.fitBounds(bounds);
+    map.setZoom(zoom);
+	
 	previewMarker = true;
   };
   
