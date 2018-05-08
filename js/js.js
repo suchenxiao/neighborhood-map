@@ -1,7 +1,5 @@
 // 初始化
 function init() {
-  // 加载视图模型
-  ko.applyBindings(new ViewModel());
   
   // 加载地图
   Map.map = new google.maps.Map(document.getElementById('map'), {
@@ -9,10 +7,8 @@ function init() {
 	zoom: 13
   });
   
-  // 初始化标记变量
-  Mark.init();
-  // 初始化地图功能
-  Map.init();
+  // 加载视图模型
+  ko.applyBindings(new ViewModel());
   
   // 显示默认地点标记
   Mark.showMarkers();
@@ -26,8 +22,6 @@ Map.init = function(){
   var searchBox = new google.maps.places.SearchBox(document.getElementById('places-search'));
   // 绑定搜索框
   searchBox.setBounds(this.map.getBounds());
-  // 加载信息窗口
-  var largeInfowindow = new google.maps.InfoWindow();
   
 		
   // 为初始地点绘制标记
@@ -43,7 +37,7 @@ Map.init = function(){
 	  id: id
 	});
 	marker.addListener('click', function() {
-	  //populateInfoWindow(this, largeInfowindow);
+	  Info.populate(this);
 	});
 	marker.addListener('mouseover', function() {
 	  this.setIcon(Mark.highlightedIcon);
@@ -101,9 +95,60 @@ var Mark = {
 	return markerImage;
   },
   
+};
+
+// 信息窗
+var Info = {
+  
+  init : function() {
+    this.infowindow = new google.maps.InfoWindow();
+  },
+  
+  // 基于标记，显示信息
+  populate : function (marker) {
+    var infowindow = this.infowindow;
+	// 检查点击的窗口是否已打开
+	if (infowindow.marker != marker) {
+	  // 清除已打开窗口内容
+	  infowindow.setContent('');
+	  infowindow.marker = marker;
+	  // 信息窗关闭后，清除绑定的标记
+	  infowindow.addListener('closeclick', function() {
+		infowindow.marker = null;
+	  });
+	  //使用谷歌街景服务
+	  var streetViewService = new google.maps.StreetViewService();
+	  var radius = 50;
+	  function getStreetView(data, status) {
+		if (status == google.maps.StreetViewStatus.OK) {
+		  var nearStreetViewLocation = data.location.latLng;
+		  var heading = google.maps.geometry.spherical.computeHeading(
+			nearStreetViewLocation, marker.position);
+			infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
+			var panoramaOptions = {
+			  position: nearStreetViewLocation,
+			  pov: {
+				heading: heading,
+				pitch: 30
+			  }
+			};
+		  var panorama = new google.maps.StreetViewPanorama(
+			document.getElementById('pano'), panoramaOptions);
+		} else {
+		  infowindow.setContent('<div>' + marker.title + '</div>' +
+			'<div>No Street View Found</div>');
+		}
+	  }
+	  
+	  streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+	  
+	  // 打开信息窗口
+	  infowindow.open(map, marker);
+	}
+  },
+
 }
-
-
+  
 // 初始地点
 var initialLocations = [
   {
@@ -147,6 +192,13 @@ var ViewModel = function() {
   this.toggleOptionsBox = function() {
 	self.optionsBoxShow(!self.optionsBoxShow());
   }
+  
+  // 初始化标记变量
+  Mark.init();
+  // 初始化地图功能
+  Map.init();
+  // 初始化信息窗口
+  Info.init();
 };
 	
 
