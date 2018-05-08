@@ -2,56 +2,30 @@
 function init() {
   
   // 加载地图
-  Map.map = new google.maps.Map(document.getElementById('map'), {
+  map = new google.maps.Map(document.getElementById('map'), {
 	center: {lat: 39.929074, lng: 116.310931},
 	zoom: 13
   });
   
+  // 初始化搜索框功能
+  SearchBox.init();
+  // 初始化标记列表、样式
+  Mark.init();
+  // 初始化信息窗口
+  Info.init();
+  // 绘制初始地点标记
+  Location.init();
+  
   // 加载视图模型
   ko.applyBindings(new ViewModel());
-  
-  // 显示默认地点标记
-  Mark.showMarkers();
+
   
 }
 
-// 地图变量
-var Map;
-Map.init = function(){
-  // 加载搜索框
-  var searchBox = new google.maps.places.SearchBox(document.getElementById('places-search'));
-  // 绑定搜索框
-  searchBox.setBounds(this.map.getBounds());
-  
-		
-  // 为初始地点绘制标记
-  initialLocations.forEach(function(locationItem){
-	var position = locationItem.location;
-	var title = locationItem.title;
-	var id = locationItem.index;
-	var marker = new google.maps.Marker({
-	  position: position,
-	  title: title,
-	  animation: google.maps.Animation.DROP,
-	  icon: Mark.defaultIcon,
-	  id: id
-	});
-	marker.addListener('click', function() {
-	  Info.populate(this);
-	});
-	marker.addListener('mouseover', function() {
-	  this.setIcon(Mark.highlightedIcon);
-	});
-	marker.addListener('mouseout', function() {
-	  this.setIcon(Mark.defaultIcon);
-	});
-	// 放入markers列表
-	Mark.markers.push(marker);
-  });
-}
+//地图对象
+var map;
 
-
-// 标记变量
+// 标记对象
 var Mark = {
 	
   init : function() {
@@ -70,10 +44,10 @@ var Mark = {
   showMarkers : function() {
 	var bounds = new google.maps.LatLngBounds();
 	this.markers.forEach(function(marker) {
-	  marker.setMap(Map.map);
+	  marker.setMap(map);
 	  bounds.extend(marker.position);
 	});
-	Map.map.fitBounds(bounds);
+	map.fitBounds(bounds);
   },
   
   // 隐藏标记列表
@@ -97,7 +71,7 @@ var Mark = {
   
 };
 
-// 信息窗
+// 信息窗对象
 var Info = {
   
   init : function() {
@@ -149,42 +123,82 @@ var Info = {
 
 }
   
-// 初始地点
-var initialLocations = [
-  {
-	index : 0,
-	title : '故宫博物院',
-	location: {lat: 39.923841, lng: 116.389809}
-  },
-  {
-	index : 1,
-	title : '西单图书大厦',
-	location: {lat: 39.919826, lng: 116.394788}
-  },
-  {
-	index : 2,
-	title : '天安门',
-	location: {lat: 39.915898, lng: 116.397211}
-  },
-  {
-	index : 3,
-	title : '王府井步行街',
-	location: {lat: 39.9105551, lng: 116.4103644}
-  },
-  {
-	index : 4,
-	title : '景山公园',
-	location: {lat: 39.9241704, lng: 116.3921251}
+// 地点对象
+var Location = {
+  locations : [
+	{
+	  index : 0,
+	  title : '故宫博物院',
+	  location: {lat: 39.923841, lng: 116.389809}
+	},
+	{
+	  index : 1,
+	  title : '西单图书大厦',
+	  location: {lat: 39.919826, lng: 116.394788}
+	},
+	{
+	  index : 2,
+	  title : '天安门',
+	  location: {lat: 39.915898, lng: 116.397211}
+	},
+	{
+	  index : 3,
+	  title : '王府井步行街',
+	  location: {lat: 39.9105551, lng: 116.4103644}
+	},
+	{
+	  index : 4,
+	  title : '景山公园',
+	  location: {lat: 39.9241704, lng: 116.3921251}
+	}
+  ],
+  
+  init : function() {
+    // 为初始地点绘制标记
+	this.locations.forEach(function(locationItem){
+	  var position = locationItem.location;
+	  var title = locationItem.title;
+	  var id = locationItem.index;
+	  var marker = new google.maps.Marker({
+		position: position,
+		title: title,
+		animation: google.maps.Animation.DROP,
+		icon: Mark.defaultIcon,
+		id: id
+	  });
+	  marker.addListener('click', function() {
+		Info.populate(this);
+	  });
+	  marker.addListener('mouseover', function() {
+		this.setIcon(Mark.highlightedIcon);
+	  });
+	  marker.addListener('mouseout', function() {
+		this.setIcon(Mark.defaultIcon);
+	  });
+	  // 放入markers列表
+	  Mark.markers.push(marker);
+	});
+    Mark.showMarkers();
   }
-];
+  
+};
 
+// 搜索框对象
+var SearchBox = {
+  init : function(){
+	// 加载搜索框
+	this.box = new google.maps.places.SearchBox(document.getElementById('places-search'));
+	// 绑定搜索框
+	this.box.setBounds(map.getBounds());
+  }
+};
 
 // 视图模型
 var ViewModel = function() {
   var self = this;
   
   this.locationList = ko.observableArray([]);
-  initialLocations.forEach(function(locationItem){
+  Location.locations.forEach(function(locationItem){
 	self.locationList.push(ko.observable(locationItem));
   });
   
@@ -193,12 +207,6 @@ var ViewModel = function() {
 	self.optionsBoxShow(!self.optionsBoxShow());
   }
   
-  // 初始化标记变量
-  Mark.init();
-  // 初始化地图功能
-  Map.init();
-  // 初始化信息窗口
-  Info.init();
 };
 	
 
