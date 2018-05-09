@@ -31,6 +31,7 @@ var Mark = {
   init : function() {
     // 储备标记列表
     this.markers = [];
+	this.placeMarkers = [];
 	
 	// 储备临时标记
 	this.tempMarker = null;
@@ -92,6 +93,47 @@ var Mark = {
 	  this.setIcon(Mark.defaultIcon);
 	});
 	return marker;
+  },
+  
+  createMarkersForPlaces : function(places) {
+	var bounds = new google.maps.LatLngBounds();
+	for (var i = 0; i < places.length; i++) {
+	  var place = places[i];
+	  var icon = {
+		url: place.icon,
+		size: new google.maps.Size(35, 35),
+		origin: new google.maps.Point(0, 0),
+		anchor: new google.maps.Point(15, 34),
+		scaledSize: new google.maps.Size(25, 25)
+	  };
+	  // Create a marker for each place.
+	  var marker = new google.maps.Marker({
+		map: map,
+		icon: icon,
+		title: place.name,
+		position: place.geometry.location,
+		id: place.place_id
+	  });
+	  // Create a single infowindow to be used with the place details information
+	  // so that only one is open at once.
+	  var placeInfoWindow = new google.maps.InfoWindow();
+	  // If a marker is clicked, do a place details search on it in the next function.
+	  marker.addListener('click', function() {
+		if (placeInfoWindow.marker == this) {
+		  console.log("This infowindow already is on this marker!");
+		} else {
+		  Info.getPlacesDetails(this, placeInfoWindow);
+		}
+	  });
+	  this.placeMarkers.push(marker);
+	  if (place.geometry.viewport) {
+		// Only geocodes have viewport.
+		bounds.union(place.geometry.viewport);
+	  } else {
+		bounds.extend(place.geometry.location);
+	  }
+	}
+	map.fitBounds(bounds);
   }
   
 };
@@ -145,12 +187,55 @@ var Info = {
 	  infowindow.open(map, marker);
 	}
   },
+  
+  getPlacesDetails : function(marker, infowindow) {
+      var service = new google.maps.places.PlacesService(map);
+      service.getDetails({
+        placeId: marker.id
+      }, function(place, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          // Set the marker property on this infowindow so it isn't created again.
+          infowindow.marker = marker;
+          var innerHTML = '<div>';
+          if (place.name) {
+            innerHTML += '<strong>' + place.name + '</strong>';
+          }
+          if (place.formatted_address) {
+            innerHTML += '<br>' + place.formatted_address;
+          }
+          if (place.formatted_phone_number) {
+            innerHTML += '<br>' + place.formatted_phone_number;
+          }
+          if (place.opening_hours) {
+            innerHTML += '<br><br><strong>Hours:</strong><br>' +
+                place.opening_hours.weekday_text[0] + '<br>' +
+                place.opening_hours.weekday_text[1] + '<br>' +
+                place.opening_hours.weekday_text[2] + '<br>' +
+                place.opening_hours.weekday_text[3] + '<br>' +
+                place.opening_hours.weekday_text[4] + '<br>' +
+                place.opening_hours.weekday_text[5] + '<br>' +
+                place.opening_hours.weekday_text[6];
+          }
+          if (place.photos) {
+            innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
+                {maxHeight: 100, maxWidth: 200}) + '">';
+          }
+          innerHTML += '</div>';
+          infowindow.setContent(innerHTML);
+          infowindow.open(map, marker);
+          // Make sure the marker property is cleared if the infowindow is closed.
+          infowindow.addListener('closeclick', function() {
+            infowindow.marker = null;
+          });
+        }
+      });
+    }
 
 }
   
 // 地点对象
 var Location = {
-  locations : [
+  initLocations : [
 	{
 	  index : 0,
 	  title : '故宫博物院',
@@ -177,10 +262,16 @@ var Location = {
 	  location: {lat: 39.9241704, lng: 116.3921251}
 	}
   ],
+  locations : ko.observableArray([]),
   
   init : function() {
-    // 为初始地点绘制标记
-	this.locations.forEach(function(locationItem){
+	// 初始化位置列表
+	Location.initLocations.forEach(function(locationItem){
+	  Location.locations.push(ko.observable(locationItem));
+    });
+    
+	// 为初始地点绘制标记
+	this.initLocations.forEach(function(locationItem){
 	  var marker = Mark.mark(locationItem);
 	  Mark.markers.push(marker);
 	});
@@ -192,11 +283,53 @@ var Location = {
 // 搜索框对象
 var SearchBox = {
   init : function(){
-	// 加载搜索框
-	this.box = new google.maps.places.SearchBox(document.getElementById('places-search'));
+	var self = this;
 	// 绑定搜索框
+	this.box = new google.maps.places.SearchBox(document.getElementById('search-text'));
 	this.box.setBounds(map.getBounds());
-  }
+	this.box.addListener('places_changed', function() {
+	  self.searchBoxPlaces(this);
+	});
+	
+	// 绑定ko视图模型
+	this.searchText = ko.observable("");
+	this.search = function(){
+	  self.textSearchPlaces();	
+	};
+  },
+  
+  searchBoxPlaces : function(){
+    Mark.hideMarkers();
+	var places = this.box.getPlaces();
+	if (places.length == 0) {
+	  window.alert('We did not find any places matching that search!');
+	} else {
+	// For each place, get the icon, name and location.
+	  Mark.createMarkersForPlaces(places);
+	}
+  },
+  
+  textSearchPlaces : function(){
+    var bounds = map.getBounds();
+	Mark.hideMarkers(Mark.placeMarkers);
+	var placesService = new google.maps.places.PlacesService(map);
+	placesService.textSearch({
+	  query: this.searchText(),
+	  bounds: bounds
+	}, function(results, status) {
+	  if (status === google.maps.places.PlacesServiceStatus.OK) {
+		Location.locations([]);
+		results.forEach(function(result) {
+		  Location.locations.push(ko.observable({
+		    title : result.name,
+			location : result.geometry.location
+		  }));	
+		});
+		
+		Mark.createMarkersForPlaces(results);
+	  }
+	});
+  },
 };
 
 // 视图模型
@@ -210,10 +343,7 @@ var ViewModel = function() {
   }
     
   // 绑定位置列表
-  this.locationList = ko.observableArray([]);
-  Location.locations.forEach(function(locationItem){
-	self.locationList.push(ko.observable(locationItem));
-  });
+  this.locationList = Location.locations;
   
   var previewMarker = false;
   
@@ -222,16 +352,7 @@ var ViewModel = function() {
 	Mark.hideMarkers();
 	if(Mark.tempMarker!=null) Mark.tempMarker.setMap(null);
 	Mark.tempMarker = Mark.mark(clickedPosition);
-	Mark.tempMarker.setMap(map);
-	
-	// 此方法导致直接跳转到对应地图区域，视觉效果较差
-	// TODO: 视角平缓移动到目标位置
-	var zoom = map.zoom;
-	var bounds = new google.maps.LatLngBounds();
-	bounds.extend(Mark.tempMarker.position);
-	map.fitBounds(bounds);
-    map.setZoom(zoom);
-	
+	Mark.tempMarker.setMap(map);	
 	previewMarker = true;
   };
   
@@ -248,9 +369,17 @@ var ViewModel = function() {
   // 点击位置列表
   this.setMarker = function(clickedPosition) {
 	self.setTempMarker(clickedPosition);
+	// 此方法导致直接跳转到对应地图区域，视觉效果较差
+	// TODO: 视角平缓移动到目标位置
+	var zoom = map.zoom;
+	var bounds = new google.maps.LatLngBounds();
+	bounds.extend(Mark.tempMarker.position);
+	map.fitBounds(bounds);
+    map.setZoom(zoom);
 	previewMarker = false;
   };
   
+  this.searchBox = ko.observable(SearchBox);
 };
 	
 

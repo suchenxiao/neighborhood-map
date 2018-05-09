@@ -38,11 +38,11 @@ body {
   padding: 0;
   float:left;
 }
-#places-search{
+#search-text{
   width: 170px;
   padding-left:10px;
 }
-#show-list{
+#search-btn{
   width: 80px;
 }
 .options-box>ul.location-list{

@@ -17,9 +17,9 @@
         <header>
           Locations
         </header>
-        <div class="search-box">
-          <input id="places-search" type="text" placeholder="地点筛选">
-          <input id="show-list" type="button" value="搜索">
+        <div class="search-box" data-bind="with: searchBox">
+          <input id="search-text" type="text" placeholder="地点筛选" data-bind="textInput: searchText" >
+          <input id="search-btn" type="button" value="筛选" data-bind="click: search">
         </div>
         <ul class="location-list"  data-bind="foreach: locationList">
           <li data-bind="text: $data.title, event: {mouseover: $parent.setTempMarker, mouseout: $parent.clearTempMarker}, click: $parent.setMarker"></li>
