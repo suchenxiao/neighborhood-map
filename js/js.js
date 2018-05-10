@@ -268,10 +268,24 @@ var Location = {
 	  location: {lat: 39.9241704, lng: 116.3921251}
 	}
   ],
+  // 储备地点列表
   locations : ko.observableArray([]),
-  
+  // 清空地点列表
+  clearLocations : function(){
+    this.locations([]);
+	this.previewMode = true;
+  },
+  // 重设地点列表
+  resetLocations : function(locations){
+    this.clearLocations();
+	locations.forEach(function(locationItem) {
+	  Location.locations.push(ko.observable(locationItem));	
+	});
+  },
+
   init : function() {
 	// 初始化位置列表
+	this.previewMode = true,
 	Location.initLocations.forEach(function(locationItem){
 	  Location.locations.push(ko.observable(locationItem));
     });
@@ -303,10 +317,6 @@ var SearchBox = {
 
   
   textSearchPlaces : function(){
-	// 清空现有标记
-	Mark.clearMarkers();
-	Mark.hideMarkers(Mark.placeMarkers);
-	
     var bounds = map.getBounds();
 	var placesService = new google.maps.places.PlacesService(map);
 	placesService.textSearch({
@@ -318,16 +328,19 @@ var SearchBox = {
 		while(results.length > 9){
 		  results.pop();
 		}
-		Location.locations([]);
+		// 将结果转成位置列表格式
+		var locations = [];
 		for(var i = 0; i < results.length; i++) {
-		  Location.locations.push(ko.observable({
+		  locations.push({
 			index : i,
 		    title : results[i].name,
 			location : results[i].geometry.location
-		  }));	
+		  });	
 		};
-		
-		Mark.markerPlaces(results);
+		// 重置位置列表
+		Location.resetLocations(locations);
+		// 重置标记列表
+		Mark.resetMarkers(results);
 	  }
 	});
   },
@@ -346,19 +359,16 @@ var ViewModel = function() {
   // 绑定位置列表
   this.locationList = Location.locations;
   
-  // 是否在预览列表中的标记
-  var previewMode = true;
-  
   // 预览位置标记
   this.previewMarker = function(e) {
-	if (previewMode) {
+	if (Location.previewMode) {
 	  Mark.markers[e.index].setIcon(Mark.highlightedIcon);
 	}
   };
   
   // 取消预览
   this.previewOver = function(e) {
-	if (previewMode) {
+	if (Location.previewMode) {
 	  Mark.markers[e.index].setIcon(Mark.defaultIcon);
 	}
   };
@@ -366,13 +376,15 @@ var ViewModel = function() {
   // 点击位置列表
   this.zoomMarker = function(e) {
 	// 关闭预览模式
-	previewMode = false;
+	Location.previewMode = false;
 	// 设置标记
 	Mark.hideMarkers(Mark.markers);
 	Mark.markers[e.index].setIcon(Mark.highlightedIcon);
 	Mark.markers[e.index].setMap(map);
 	// 视角聚焦到目标位置
 	map.setCenter(e.location);
+	// 加载信息
+	Info.populate(Mark.markers[e.index]);
   };
   
   this.searchBox = ko.observable(SearchBox);
