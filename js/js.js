@@ -55,13 +55,25 @@ var Mark = {
   },
   
   // 隐藏标记列表
-  hideMarkers : function() {
-	this.markers.forEach(function(marker) {
+  hideMarkers : function(markers) {
+	markers.forEach(function(marker) {
 	  Info.infowindow.setContent('');
 	  marker.setMap(null);
 	});
   },
-	  
+  
+  // 清空标记列表
+  clearMarkers : function() {
+	this.hideMarkers(this.markers);
+	this.markers = [];
+  },
+  
+  // 重设标记列表
+  resetMarkers : function(places) {
+    this.clearMarkers();
+	this.markerPlaces(places);
+  },
+
   // 绘制标记样式
   makeMarkerIcon : function(markerColor) {
 	var markerImage = new google.maps.MarkerImage(
@@ -74,8 +86,8 @@ var Mark = {
 	return markerImage;
   },
   
-  // 设置位置标记
-  mark : function(location){
+  // 通过位置信息加载标记
+  markLocation : function(location){
 	var marker = new google.maps.Marker({
 	  position: location.location,
 	  title: location.title,
@@ -95,7 +107,8 @@ var Mark = {
 	return marker;
   },
   
-  createMarkersForPlaces : function(places) {
+  // 通过谷歌地点加载标记
+  markerPlaces : function(places) {
 	var bounds = new google.maps.LatLngBounds();
 	for (var i = 0; i < places.length; i++) {
 	  var place = places[i];
@@ -106,26 +119,28 @@ var Mark = {
 		anchor: new google.maps.Point(15, 34),
 		scaledSize: new google.maps.Size(25, 25)
 	  };
-	  // Create a marker for each place.
 	  var marker = new google.maps.Marker({
 		map: map,
-		icon: icon,
+		//icon: icon,
+		icon: Mark.defaultIcon,
 		title: place.name,
 		position: place.geometry.location,
 		id: place.place_id
 	  });
-	  // Create a single infowindow to be used with the place details information
-	  // so that only one is open at once.
-	  var placeInfoWindow = new google.maps.InfoWindow();
-	  // If a marker is clicked, do a place details search on it in the next function.
 	  marker.addListener('click', function() {
-		if (placeInfoWindow.marker == this) {
+		if (Info.infowindow.marker == this) {
 		  console.log("This infowindow already is on this marker!");
 		} else {
-		  Info.getPlacesDetails(this, placeInfoWindow);
+		  Info.getPlacesDetails(this, Info.infowindow);
 		}
 	  });
-	  this.placeMarkers.push(marker);
+	  marker.addListener('mouseover', function() {
+		this.setIcon(Mark.highlightedIcon);
+	  });
+	  marker.addListener('mouseout', function() {
+		this.setIcon(Mark.defaultIcon);
+	  });
+	  this.markers.push(marker);
 	  if (place.geometry.viewport) {
 		// Only geocodes have viewport.
 		bounds.union(place.geometry.viewport);
@@ -157,7 +172,8 @@ var Info = {
 	  infowindow.addListener('closeclick', function() {
 		infowindow.marker = null;
 	  });
-	  //使用谷歌街景服务
+	  // 使用谷歌街景服务获取信息
+	  // TODO: 替换成其他内容
 	  var streetViewService = new google.maps.StreetViewService();
 	  var radius = 50;
 	  function getStreetView(data, status) {
@@ -176,11 +192,9 @@ var Info = {
 		  var panorama = new google.maps.StreetViewPanorama(
 			document.getElementById('pano'), panoramaOptions);
 		} else {
-		  infowindow.setContent('<div>' + marker.title + '</div>' +
-			'<div>No Street View Found</div>');
+		  infowindow.setContent('<div>' + marker.title + '</div>');
 		}
 	  }
-	  
 	  streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
 	  
 	  // 打开信息窗口
@@ -189,6 +203,8 @@ var Info = {
   },
   
   getPlacesDetails : function(marker, infowindow) {
+	  // 使用谷歌地点服务获取信息
+	  // TODO: 替换成其他内容
       var service = new google.maps.places.PlacesService(map);
       service.getDetails({
         placeId: marker.id
@@ -205,16 +221,6 @@ var Info = {
           }
           if (place.formatted_phone_number) {
             innerHTML += '<br>' + place.formatted_phone_number;
-          }
-          if (place.opening_hours) {
-            innerHTML += '<br><br><strong>Hours:</strong><br>' +
-                place.opening_hours.weekday_text[0] + '<br>' +
-                place.opening_hours.weekday_text[1] + '<br>' +
-                place.opening_hours.weekday_text[2] + '<br>' +
-                place.opening_hours.weekday_text[3] + '<br>' +
-                place.opening_hours.weekday_text[4] + '<br>' +
-                place.opening_hours.weekday_text[5] + '<br>' +
-                place.opening_hours.weekday_text[6];
           }
           if (place.photos) {
             innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
@@ -272,7 +278,7 @@ var Location = {
     
 	// 为初始地点绘制标记
 	this.initLocations.forEach(function(locationItem){
-	  var marker = Mark.mark(locationItem);
+	  var marker = Mark.markLocation(locationItem);
 	  Mark.markers.push(marker);
 	});
     Mark.showMarkers();
@@ -284,49 +290,44 @@ var Location = {
 var SearchBox = {
   init : function(){
 	var self = this;
-	// 绑定搜索框
-	this.box = new google.maps.places.SearchBox(document.getElementById('search-text'));
-	this.box.setBounds(map.getBounds());
-	this.box.addListener('places_changed', function() {
-	  self.searchBoxPlaces(this);
-	});
-	
+	// 绑定搜索框-自动输入
+	this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
+	this.textBox.bindTo('bounds', map);
+
 	// 绑定ko视图模型
 	this.searchText = ko.observable("");
 	this.search = function(){
 	  self.textSearchPlaces();	
 	};
   },
-  
-  searchBoxPlaces : function(){
-    Mark.hideMarkers();
-	var places = this.box.getPlaces();
-	if (places.length == 0) {
-	  window.alert('We did not find any places matching that search!');
-	} else {
-	// For each place, get the icon, name and location.
-	  Mark.createMarkersForPlaces(places);
-	}
-  },
+
   
   textSearchPlaces : function(){
-    var bounds = map.getBounds();
+	// 清空现有标记
+	Mark.clearMarkers();
 	Mark.hideMarkers(Mark.placeMarkers);
+	
+    var bounds = map.getBounds();
 	var placesService = new google.maps.places.PlacesService(map);
 	placesService.textSearch({
 	  query: this.searchText(),
 	  bounds: bounds
 	}, function(results, status) {
 	  if (status === google.maps.places.PlacesServiceStatus.OK) {
+		// 将返回的结果删减到10各以内
+		while(results.length > 9){
+		  results.pop();
+		}
 		Location.locations([]);
-		results.forEach(function(result) {
+		for(var i = 0; i < results.length; i++) {
 		  Location.locations.push(ko.observable({
-		    title : result.name,
-			location : result.geometry.location
+			index : i,
+		    title : results[i].name,
+			location : results[i].geometry.location
 		  }));	
-		});
+		};
 		
-		Mark.createMarkersForPlaces(results);
+		Mark.markerPlaces(results);
 	  }
 	});
   },
@@ -345,38 +346,33 @@ var ViewModel = function() {
   // 绑定位置列表
   this.locationList = Location.locations;
   
-  var previewMarker = false;
+  // 是否在预览列表中的标记
+  var previewMode = true;
   
   // 预览位置标记
-  this.setTempMarker = function(clickedPosition) {
-	Mark.hideMarkers();
-	if(Mark.tempMarker!=null) Mark.tempMarker.setMap(null);
-	Mark.tempMarker = Mark.mark(clickedPosition);
-	Mark.tempMarker.setMap(map);	
-	previewMarker = true;
+  this.previewMarker = function(e) {
+	if (previewMode) {
+	  Mark.markers[e.index].setIcon(Mark.highlightedIcon);
+	}
   };
   
   // 取消预览
-  this.clearTempMarker = function() {
-	if(previewMarker) {
-	  Mark.tempMarker.setMap(null);
-	  Mark.tempMarker = null;
-	  Mark.showMarkers();
-	  previewMarker = false;
+  this.previewOver = function(e) {
+	if (previewMode) {
+	  Mark.markers[e.index].setIcon(Mark.defaultIcon);
 	}
   };
   
   // 点击位置列表
-  this.setMarker = function(clickedPosition) {
-	self.setTempMarker(clickedPosition);
-	// 此方法导致直接跳转到对应地图区域，视觉效果较差
-	// TODO: 视角平缓移动到目标位置
-	var zoom = map.zoom;
-	var bounds = new google.maps.LatLngBounds();
-	bounds.extend(Mark.tempMarker.position);
-	map.fitBounds(bounds);
-    map.setZoom(zoom);
-	previewMarker = false;
+  this.zoomMarker = function(e) {
+	// 关闭预览模式
+	previewMode = false;
+	// 设置标记
+	Mark.hideMarkers(Mark.markers);
+	Mark.markers[e.index].setIcon(Mark.highlightedIcon);
+	Mark.markers[e.index].setMap(map);
+	// 视角聚焦到目标位置
+	map.setCenter(e.location);
   };
   
   this.searchBox = ko.observable(SearchBox);
