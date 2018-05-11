@@ -83,7 +83,15 @@ body {
 .map-box>header>.options-btn{
   display: inline-block;
   width: 60px;
+  font-size: 24px;
+  font-weight: bold;
   cursor: pointer;
+}
+.map-box>header>.options-btn::before{
+  content: '-';
+}
+.map-box-full>header>.options-btn::before{
+  content: '+';
 }
 .map-box>header>.title{
   display: inline-block;

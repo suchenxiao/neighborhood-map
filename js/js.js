@@ -73,6 +73,13 @@ var Mark = {
     this.clearMarkers();
 	this.markerPlaces(places);
   },
+  
+  // 重置标记列表
+  resetIcons : function() {
+	this.markers.forEach(function(mark){
+	  mark.setIcon(Mark.defaultIcon);	
+	});
+  },
 
   // 绘制标记样式
   makeMarkerIcon : function(markerColor) {
@@ -110,6 +117,9 @@ var Mark = {
 		if (Info.infowindow.marker == this) {
 		  console.log("This infowindow already is on this marker!");
 		} else {
+		  Mark.resetIcons();
+		  this.setIcon(Mark.highlightedIcon);
+		  Location.previewMode = false;
 		  Info.getPlacesDetails(this, Info.infowindow);
 		}
 	  });
@@ -117,7 +127,9 @@ var Mark = {
 		this.setIcon(Mark.highlightedIcon);
 	  });
 	  marker.addListener('mouseout', function() {
-		this.setIcon(Mark.defaultIcon);
+		if (Info.infowindow.marker != this) {
+		  this.setIcon(Mark.defaultIcon);
+		}
 	  });
 	  this.markers.push(marker);
 	  if (place.geometry.viewport) {
@@ -144,15 +156,8 @@ var Info = {
     var infowindow = this.infowindow;
 	// 检查点击的窗口是否已打开
 	if (infowindow.marker != marker) {
-	  // 清除已打开窗口内容
-	  infowindow.setContent('');
-	  infowindow.marker = marker;
-	  // 信息窗关闭后，清除绑定的标记
-	  infowindow.addListener('closeclick', function() {
-		infowindow.marker = null;
-	  });
+	  
 	  // 使用谷歌街景服务获取信息
-	  // TODO: 替换成其他内容
 	  this.getPlacesDetails(marker, infowindow);
 	  
 	  // 打开信息窗口
@@ -190,6 +195,8 @@ var Info = {
           infowindow.open(map, marker);
           // Make sure the marker property is cleared if the infowindow is closed.
           infowindow.addListener('closeclick', function() {
+			Mark.resetIcons();
+			Location.previewMode = true;
             infowindow.marker = null;
           });
         }
@@ -356,7 +363,8 @@ var ViewModel = function() {
 	// 关闭预览模式
 	Location.previewMode = false;
 	// 设置标记
-	Mark.hideMarkers(Mark.markers);
+	//Mark.hideMarkers(Mark.markers);
+	Mark.resetIcons();
 	Mark.markers[e.index].setIcon(Mark.highlightedIcon);
 	Mark.markers[e.index].setMap(map);
 	// 视角聚焦到目标位置
