@@ -1,6 +1,6 @@
 // 初始化
 function init() {
-  
+
   // 加载地图
   map = new google.maps.Map(document.getElementById('map'), {
 	center: {lat: 39.929074, lng: 116.310931},
@@ -18,9 +18,8 @@ function init() {
   
   // 加载视图模型
   ko.applyBindings(new ViewModel());
-
-  
 }
+
 
 //地图对象
 var map;
