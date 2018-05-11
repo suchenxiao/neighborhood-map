@@ -86,28 +86,7 @@ var Mark = {
 	return markerImage;
   },
   
-  // 通过位置信息加载标记
-  markLocation : function(location){
-	var marker = new google.maps.Marker({
-	  position: location.location,
-	  title: location.title,
-	  animation: google.maps.Animation.DROP,
-	  icon: Mark.defaultIcon,
-	  id: location.index
-	});
-	marker.addListener('click', function() {
-	  Info.populate(this);
-	});
-	marker.addListener('mouseover', function() {
-	  this.setIcon(Mark.highlightedIcon);
-	});
-	marker.addListener('mouseout', function() {
-	  this.setIcon(Mark.defaultIcon);
-	});
-	return marker;
-  },
-  
-  // 通过谷歌地点加载标记
+  // 通过地点加载标记
   markerPlaces : function(places) {
 	var bounds = new google.maps.LatLngBounds();
 	for (var i = 0; i < places.length; i++) {
@@ -241,33 +220,36 @@ var Info = {
   
 // 地点对象
 var Location = {
-  initLocations : [
-	{
-	  index : 0,
-	  title : '故宫博物院',
-	  location: {lat: 39.923841, lng: 116.389809}
-	},
-	{
-	  index : 1,
-	  title : '西单图书大厦',
-	  location: {lat: 39.919826, lng: 116.394788}
-	},
-	{
-	  index : 2,
-	  title : '天安门',
-	  location: {lat: 39.915898, lng: 116.397211}
-	},
-	{
-	  index : 3,
-	  title : '王府井步行街',
-	  location: {lat: 39.9105551, lng: 116.4103644}
-	},
-	{
-	  index : 4,
-	  title : '景山公园',
-	  location: {lat: 39.9241704, lng: 116.3921251}
-	}
+  // 初始地点ID
+  initPlaceIds : [
+    'ChIJWWErs-ZS8DURdcUOnciALOI',
+	'ChIJiaRNz-BS8DURW2N_nAufVJU',
+	'ChIJtSM60VJT8DURWuNr0zAte2Q',
+	'ChIJq4HNm91S8DURZGAQm-3qQ94',
+	'ChIJWdpEnCtT8DUR_zktyc2S2lE',
   ],
+
+  // 加载初始地点
+  init : function() {
+
+	var service = new google.maps.places.PlacesService(map);
+    var details = [];
+
+	this.initPlaceIds.forEach(function(id){
+	  service.getDetails({placeId: id}, callback);
+	});
+
+	function callback(place, status) {
+	  if (status == google.maps.places.PlacesServiceStatus.OK) {
+		details.push(place);
+	    if(details.length == Location.initPlaceIds.length ) {
+		  Location.resetLocations(details);
+	      Mark.resetMarkers(details);
+		}
+	  }
+	}
+  },
+
   // 储备地点列表
   locations : ko.observableArray([]),
   // 清空地点列表
@@ -276,27 +258,21 @@ var Location = {
 	this.previewMode = true;
   },
   // 重设地点列表
-  resetLocations : function(locations){
+  resetLocations : function(results){
     this.clearLocations();
-	locations.forEach(function(locationItem) {
+	// 将结果转成位置列表格式
+	var formatLocations = [];
+	for(var i = 0; i < results.length; i++) {
+	  formatLocations.push({
+		index : i,
+		title : results[i].name,
+		location : results[i].geometry.location
+	  });
+	};
+	formatLocations.forEach(function(locationItem) {
 	  Location.locations.push(ko.observable(locationItem));	
 	});
   },
-
-  init : function() {
-	// 初始化位置列表
-	this.previewMode = true,
-	Location.initLocations.forEach(function(locationItem){
-	  Location.locations.push(ko.observable(locationItem));
-    });
-    
-	// 为初始地点绘制标记
-	this.initLocations.forEach(function(locationItem){
-	  var marker = Mark.markLocation(locationItem);
-	  Mark.markers.push(marker);
-	});
-    Mark.showMarkers();
-  }
   
 };
 
@@ -336,19 +312,11 @@ var SearchBox = {
 		while(results.length > 9){
 		  results.pop();
 		}
-		// 将结果转成位置列表格式
-		var locations = [];
-		for(var i = 0; i < results.length; i++) {
-		  locations.push({
-			index : i,
-		    title : results[i].name,
-			location : results[i].geometry.location
-		  });	
-		};
 		// 重置位置列表
-		Location.resetLocations(locations);
+		Location.resetLocations(results);
 		// 重置标记列表
 		Mark.resetMarkers(results);
+		console.log(results);
 	  }
 	});
   },
