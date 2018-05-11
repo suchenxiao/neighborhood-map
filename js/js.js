@@ -153,28 +153,7 @@ var Info = {
 	  });
 	  // 使用谷歌街景服务获取信息
 	  // TODO: 替换成其他内容
-	  var streetViewService = new google.maps.StreetViewService();
-	  var radius = 50;
-	  function getStreetView(data, status) {
-		if (status == google.maps.StreetViewStatus.OK) {
-		  var nearStreetViewLocation = data.location.latLng;
-		  var heading = google.maps.geometry.spherical.computeHeading(
-			nearStreetViewLocation, marker.position);
-			infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
-			var panoramaOptions = {
-			  position: nearStreetViewLocation,
-			  pov: {
-				heading: heading,
-				pitch: 30
-			  }
-			};
-		  var panorama = new google.maps.StreetViewPanorama(
-			document.getElementById('pano'), panoramaOptions);
-		} else {
-		  infowindow.setContent('<div>' + marker.title + '</div>');
-		}
-	  }
-	  streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
+	  this.getPlacesDetails(marker, infowindow);
 	  
 	  // 打开信息窗口
 	  infowindow.open(map, marker);
@@ -182,8 +161,7 @@ var Info = {
   },
   
   getPlacesDetails : function(marker, infowindow) {
-	  // 使用谷歌地点服务获取信息
-	  // TODO: 替换成其他内容
+	  // 使用谷歌地点服务获取信息,图片以Instagram作为备选项
       var service = new google.maps.places.PlacesService(map);
       service.getDetails({
         placeId: marker.id
@@ -202,9 +180,11 @@ var Info = {
             innerHTML += '<br>' + place.formatted_phone_number;
           }
           if (place.photos) {
-            innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
-                {maxHeight: 100, maxWidth: 200}) + '">';
-          }
+			innerHTML += '<br><br><img src="' + place.photos[0].getUrl({maxHeight: 100, maxWidth: 200}) + '">';
+          } else {
+		    innerHTML += '<br><br>';
+			Instagram.addImage(place.name);
+		  }
           innerHTML += '</div>';
           infowindow.setContent(innerHTML);
           infowindow.open(map, marker);
@@ -265,6 +245,7 @@ var Location = {
 	for(var i = 0; i < results.length; i++) {
 	  formatLocations.push({
 		index : i,
+		place_id : results[i].place_id,
 		title : results[i].name,
 		location : results[i].geometry.location
 	  });
@@ -283,14 +264,6 @@ var SearchBox = {
 	// 绑定搜索框-自动输入
 	this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
 	this.textBox.bindTo('bounds', map);
-    /*
-	 * 另一种可能的实现方法
-    var textBox = new google.maps.places.SearchBox(document.getElementById('search-text'));
-    textBox.setBounds(map.getBounds());
-	textBox.addListener('places_changed', function() {
-         self.textSearchPlaces();
-    });
-	*/
 
 	// 绑定ko视图模型
 	this.searchText = ko.observable("");
@@ -299,7 +272,6 @@ var SearchBox = {
 	};
   },
 
-  
   textSearchPlaces : function(){
     var bounds = map.getBounds();
 	var placesService = new google.maps.places.PlacesService(map);
@@ -316,7 +288,6 @@ var SearchBox = {
 		Location.resetLocations(results);
 		// 重置标记列表
 		Mark.resetMarkers(results);
-		console.log(results);
 	  }
 	});
   },
@@ -325,27 +296,32 @@ var SearchBox = {
 //通过Instagram获取图片
 var Instagram = {
 
-  // 通过文本搜索，返回图片HTML字符串
-  searchImage : function(text){
+  // 通过文本搜索，在信息窗口中加载图片
+  addImage : function(text){
+    var searchedForText = text;
+	var imgHTML;
+	$.ajax({
+	  url: ('https://api.unsplash.com/search/photos?page=1&query=' + text),
+	  headers: { Authorization : 'Client-ID 950396520af696bc57322dbae069c8dcfc9ead6edb575e736ed1df0beb5b63bb'}
+	})
+	.done(success)
+	.fail(error)
+	.done(appendHTML)
 
-	  $.ajax({
-		url: ('https://api.unsplash.com/search/photos?page=1&query=' + text),
-		headers: { Authorization : 'Client-ID 950396520af696bc57322dbae069c8dcfc9ead6edb575e736ed1df0beb5b63bb'}
-	  })
-	  .done(success)
-	  .fail(error)
-	  
-	  function success(images){
-		console.log('search image success');
-		const firstImg = images.results[0];
-		return '<img src=' + firstImg.urls.regular + 'alt=' + searchedForText + '>';
-	  }
+	function success(images){
+	  console.log('search image success');
+	  const firstImg = images.results[0];
+	  imgHTML = '<img src="' + firstImg.urls.regular + '" alt="' + searchedForText + '" style = "max-height: 100px; max-width: 200px" >';
+	}
 
-	  function error(){
-		console.log('search image error');
-	  }
+	function appendHTML(){
+	  Info.infowindow.setContent(Info.infowindow.content + imgHTML);
+	}
+
+	function error(){
+	  console.log('search image error');
+	}
   }
-
 }
 
 // 视图模型
