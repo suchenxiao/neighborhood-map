@@ -307,6 +307,14 @@ var SearchBox = {
 	// 绑定搜索框-自动输入
 	this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
 	this.textBox.bindTo('bounds', map);
+    /*
+	 * 另一种可能的实现方法
+    var textBox = new google.maps.places.SearchBox(document.getElementById('search-text'));
+    textBox.setBounds(map.getBounds());
+	textBox.addListener('places_changed', function() {
+         self.textSearchPlaces();
+    });
+	*/
 
 	// 绑定ko视图模型
 	this.searchText = ko.observable("");
@@ -345,6 +353,32 @@ var SearchBox = {
 	});
   },
 };
+
+//通过Instagram获取图片
+var Instagram = {
+
+  // 通过文本搜索，返回图片HTML字符串
+  searchImage : function(text){
+
+	  $.ajax({
+		url: ('https://api.unsplash.com/search/photos?page=1&query=' + text),
+		headers: { Authorization : 'Client-ID 950396520af696bc57322dbae069c8dcfc9ead6edb575e736ed1df0beb5b63bb'}
+	  })
+	  .done(success)
+	  .fail(error)
+	  
+	  function success(images){
+		console.log('search image success');
+		const firstImg = images.results[0];
+		return '<img src=' + firstImg.urls.regular + 'alt=' + searchedForText + '>';
+	  }
+
+	  function error(){
+		console.log('search image error');
+	  }
+  }
+
+}
 
 // 视图模型
 var ViewModel = function() {
