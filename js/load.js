@@ -1,9 +1,12 @@
-// 测试能付加载谷歌地图
+// 测试能否加载谷歌地图
   
 (function(){
   fetch('https://maps.googleapis.com/maps/api/geocode/json?latlng=39.929074,116.310931&key=AIzaSyC_tE8_pY_gRt_MWsmrG2sGOBQHr4aYdJM')
+  //.then(response => response.json())
+  //.then(response => console.log(response))
+  .catch(netError)
   .then(addJs)
-  .catch(error);
+  .catch(jsError);
   
   function addJs(){		
 	[
@@ -11,15 +14,24 @@
 	  'js/knockout-3.2.0.js',
 	  'js/js.js',
 	  'https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyC_tE8_pY_gRt_MWsmrG2sGOBQHr4aYdJM&v=3&callback=init'
-	].forEach(function(js){
+	].forEach(function(js, index, arr){
 	  var script = document.createElement("script");
-	  script.src = js; 
+	  script.src = js;
+	  if(index == arr.length-1) {
+		script.async = 'async';
+		script.defer = 'defer';
+	  }
 	  document.body.appendChild(script);
 	})
   }
   
-  function error(e){
+  function netError(e){
 	console.log(e);
-	alert('哎呀，地图加载失败了，看看网络情况吧');	
+	alert('哎呀，地图加载出错了，看看网络情况吧');
+  }
+
+  function jsError(e){
+	console.log(e);
+	alert('哎呀，JS文件加载出错了');
   }
 })()
