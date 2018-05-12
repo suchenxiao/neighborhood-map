@@ -29,8 +29,14 @@ body {
   cursor: pointer;
   transition: all linear 0.5s;
 }
-.options-box>header:hover{
-  color: #666;
+.options-box>header>span{
+  padding: 10px;
+  border: 1px solid #fff;
+}
+.options-box>header>span.mode-on{
+  border: 1px solid #fff;
+  background: #fff;
+  color: #222;
 }
 .options-box>.search-box{
   width: 260px;
@@ -49,6 +55,10 @@ body {
 }
 #search-btn{
   width: 80px;
+  cursor: pointer;
+}
+#search-btn:hover{
+  background: #6cf;
 }
 .options-box>ul.location-list{
   padding: 0 20px;

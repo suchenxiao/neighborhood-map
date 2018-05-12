@@ -254,6 +254,12 @@ var Location = {
     this.locations([]);
     this.previewMode = true;
   },
+  // 重新可见列表
+  visibleLocations : function(){
+    this.locations().forEach(function(lcoation) {
+      lcoation().visible(true);
+     });
+  },
   // 重设地点列表
   resetLocations : function(results){
     this.clearLocations();
@@ -264,13 +270,14 @@ var Location = {
         index : i,
         place_id : results[i].place_id,
         title : results[i].name,
-        location : results[i].geometry.location
+        location : results[i].geometry.location,
+        visible : ko.observable(true)
       });
     };
     formatLocations.forEach(function(locationItem) {
       Location.locations.push(ko.observable(locationItem));
     });
-  },
+  }
 
 };
 
@@ -279,30 +286,52 @@ var SearchBox = {
   init : function(){
     var self = this;
     // 绑定搜索框-自动输入
-    this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
-    this.textBox.bindTo('bounds', map);
+    //this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
+    //this.textBox.bindTo('bounds', map);
 
   },
 
   textSearchPlaces : function(text){
-    var bounds = map.getBounds();
-    var placesService = new google.maps.places.PlacesService(map);
-    placesService.textSearch({
-      query: text,
-      bounds: bounds
-    }, function(results, status) {
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        // 将返回的结果删减到10各以内
-        while(results.length > 9){
-          results.pop();
+    if(text && text.trim()){
+      text = text.trim();
+      var bounds = map.getBounds();
+      var placesService = new google.maps.places.PlacesService(map);
+      placesService.textSearch({
+        query: text,
+        bounds: bounds
+      }, function(results, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          // 将返回的结果删减到10各以内
+          while(results.length > 9){
+            results.pop();
+          }
+          // 重置位置列表
+          Location.resetLocations(results);
+          // 重置标记列表
+          Mark.resetMarkers(results);
         }
-        // 重置位置列表
-        Location.resetLocations(results);
-        // 重置标记列表
-        Mark.resetMarkers(results);
-      }
-    });
+      });
+    } else {
+      alert('请先输入地点');
+      return false;
+    }
   },
+
+  textFiltPlaces : function(text){
+    if (!text) {
+        Location.visibleLocations();
+        return Location.locations();
+    } else {
+
+      Location.locations().filter(function(location) {
+        var matched = location().title.toLowerCase().indexOf(text.toLowerCase()) !== -1;
+        location().visible(matched);
+        Mark.markers[location().index].setVisible(matched);
+        return (matched);
+      });
+    }
+
+  }
 };
 
 //通过Instagram获取图片
@@ -359,23 +388,33 @@ var ViewModel = function() {
   // 按钮的文字
   this.btnText = ko.observable();
   // 按钮的功能
-  this.btnFunction = function(){this.searchBtn()};
+  this.btnFunction = function(){};
   this.searchBtn = function(){SearchBox.textSearchPlaces(this.inputText())};
-  this.flitBtn = function(){alert('筛选 '+this.inputText())};
+  this.flitBtn = function(){SearchBox.textFiltPlaces(this.inputText())};
   // 模式转换后，切换内容
   this.mode.subscribe(function(mode) {
     if(mode == 'search') {
       self.optionsTitle('搜索模式');
       self.btnText('搜索');
+      // 取消筛选效果
+      Location.visibleLocations();
       self.btnFunction = function() {self.searchBtn()};
     } else if(mode == 'filt') {
       self.optionsTitle('筛选模式');
       self.btnText('筛选');
+      // 进行一次筛选
+      self.flitBtn();
       self.btnFunction = function() {self.flitBtn()};
     }
   });
+  this.inputText.subscribe(function(text) {
+    if(self.mode() == 'filt') {
+      self.flitBtn();
+    }
+  });
+
   // 设置初始模式
-  this.mode('search');
+  this.mode('filt');
 
   // 展现的列表
   this.locationList = Location.locations;

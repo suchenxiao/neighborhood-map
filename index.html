@@ -18,14 +18,15 @@
     <div class="container">
     
       <div class="options-box" data-bind="visible: optionsVisible">
-        <header data-bind="text: optionsTitle, click: toggleMode">
+        <header data-bind="click: toggleMode">
+          <span data-bind="css: { 'mode-on' : mode() == 'search' }">搜索模式</span><span data-bind="css: { 'mode-on' : mode() == 'filt' }">筛选模式</span>
         </header>
         <div class="search-box">
-          <input id="search-text" type="text" placeholder="输入地点" data-bind="textInput: inputText" >
-          <input id="search-btn" type="button" value="搜索" data-bind="value: btnText, click: btnFunction">
+          <input id="search-text" type="text" value="" placeholder="输入地点" data-bind="textInput: inputText" >
+          <input id="search-btn" type="button" value="" data-bind="value: btnText, click: btnFunction">
         </div>
         <ul class="location-list"  data-bind="foreach: locationList">
-          <li data-bind="text: $data.title, event: {mouseover: $parent.previewMarker, mouseout: $parent.previewOver}, click: $parent.zoomMarker"></li>
+          <li data-bind="visible: $data.visible, text: $data.title, event: {mouseover: $parent.previewMarker, mouseout: $parent.previewOver}, click: $parent.zoomMarker"></li>
         </ul>
       </div>
       
