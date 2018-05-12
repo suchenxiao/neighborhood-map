@@ -93,6 +93,14 @@ var Mark = {
     return markerImage;
   },
 
+  // 为标记添加动画
+  addAnimation : function(marker) {
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+    setTimeout(function() {
+        marker.setAnimation(null);
+    }, 1380);
+  },
+
   // 通过地点加载标记
   markerPlaces : function(places) {
     var bounds = new google.maps.LatLngBounds();
@@ -119,6 +127,7 @@ var Mark = {
         } else {
           Mark.resetIcons();
           this.setIcon(Mark.highlightedIcon);
+          Mark.addAnimation(this);
           map.setCenter(this.getPosition());
           Location.previewMode = false;
           Info.getPlacesDetails(this, Info.infowindow);
