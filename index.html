@@ -17,22 +17,21 @@
   
     <div class="container">
     
-      <div class="options-box" data-bind="visible: optionsBoxShow">
-        <header>
-          地点
+      <div class="options-box" data-bind="visible: optionsVisible">
+        <header data-bind="text: optionsTitle">
         </header>
-        <div class="search-box" data-bind="with: searchBox">
-          <input id="search-text" type="text" placeholder="输入地点" data-bind="textInput: searchText" >
-          <input id="search-btn" type="button" value="搜索" data-bind="click: search">
+        <div class="search-box">
+          <input id="search-text" type="text" placeholder="输入地点" data-bind="textInput: inputText" >
+          <input id="search-btn" type="button" value="搜索" data-bind="value: btnText, click: btnFunction">
         </div>
         <ul class="location-list"  data-bind="foreach: locationList">
           <li data-bind="text: $data.title, event: {mouseover: $parent.previewMarker, mouseout: $parent.previewOver}, click: $parent.zoomMarker"></li>
         </ul>
       </div>
       
-      <div class="map-box" data-bind="css: { 'map-box-full' : !optionsBoxShow() }">
+      <div class="map-box" data-bind="css: { 'map-box-full' : !optionsVisible() }">
         <header>
-          <span class="options-btn" data-bind="click: toggleOptionsBox"></span>
+          <span class="options-btn" data-bind="click: toggleOptions"></span>
           <span class="title">街区地图</span>
         </header>
         

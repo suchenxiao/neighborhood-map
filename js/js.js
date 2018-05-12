@@ -293,7 +293,7 @@ var SearchBox = {
     var bounds = map.getBounds();
     var placesService = new google.maps.places.PlacesService(map);
     placesService.textSearch({
-      query: this.searchText(),
+      query: document.getElementById('search-text').value,
       bounds: bounds
     }, function(results, status) {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
@@ -326,7 +326,7 @@ var Instagram = {
     .done(appendHTML)
 
     function success(images){
-      console.log('search image success');
+      console.log('search instagram image success');
       const firstImg = images.results[0];
       imgHTML = `<img src="${firstImg.urls.regular}" alt="${searchedForText}" style = "max-height: 100px; max-width: 200px" >`;
     }
@@ -336,22 +336,33 @@ var Instagram = {
     }
 
     function error(){
-      console.log('search image error');
+      console.log('search instagram image error');
     }
   }
-}
+};
+
 
 // 视图模型
 var ViewModel = function() {
   var self = this;
 
-  // 边栏显示，隐藏功能
-  this.optionsBoxShow = ko.observable(true);
-  this.toggleOptionsBox = function() {
-    self.optionsBoxShow(!self.optionsBoxShow());
-  }
+  // 边栏是否显示
+  this.optionsVisible = ko.observable(true);
+  this.toggleOptions = function() {
+    this.optionsVisible(!this.optionsVisible());
+  };
 
-  // 绑定位置列表
+  // 边栏功能 搜索/筛选
+  this.mode = ko.observable('search'); // search || filt
+  // 边栏的标题
+  this.optionsTitle = ko.computed(function(){return (this.mode = 'search') ? '搜索模式' : '筛选模式';}, this);
+  // 输入的内容
+  this.inputText = ko.observable();
+  // 按钮的文字
+  this.btnText = ko.computed(function(){return (this.mode = 'search') ? '搜索' : '筛选'}, this);
+  // 按钮的功能
+  this.btnFunction = (this.mode = 'search') ? function(){SearchBox.textSearchPlaces()} : function(){alert('筛选')};
+  // 展现的列表
   this.locationList = Location.locations;
 
   // 预览位置标记
@@ -383,5 +394,4 @@ var ViewModel = function() {
     Info.populate(Mark.markers[e.index]);
   };
 
-  this.searchBox = ko.observable(SearchBox);
 };
