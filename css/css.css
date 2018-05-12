@@ -26,6 +26,11 @@ body {
   height: 60px;
   line-height: 60px;
   text-align:center;
+  cursor: pointer;
+  transition: all linear 0.5s;
+}
+.options-box>header:hover{
+  color: #666;
 }
 .options-box>.search-box{
   width: 260px;

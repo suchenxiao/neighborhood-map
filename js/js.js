@@ -282,18 +282,13 @@ var SearchBox = {
     this.textBox = new google.maps.places.Autocomplete(document.getElementById('search-text'));
     this.textBox.bindTo('bounds', map);
 
-    // 绑定ko视图模型
-    this.searchText = ko.observable("");
-    this.search = function(){
-      self.textSearchPlaces();
-    };
   },
 
-  textSearchPlaces : function(){
+  textSearchPlaces : function(text){
     var bounds = map.getBounds();
     var placesService = new google.maps.places.PlacesService(map);
     placesService.textSearch({
-      query: document.getElementById('search-text').value,
+      query: text,
       bounds: bounds
     }, function(results, status) {
       if (status === google.maps.places.PlacesServiceStatus.OK) {
@@ -353,15 +348,35 @@ var ViewModel = function() {
   };
 
   // 边栏功能 搜索/筛选
-  this.mode = ko.observable('search'); // search || filt
+  this.mode = ko.observable(); // search || filt
+  this.toggleMode = function() {
+    (this.mode() == 'search') ? this.mode('filt') : this.mode('search');
+  };
   // 边栏的标题
-  this.optionsTitle = ko.computed(function(){return (this.mode = 'search') ? '搜索模式' : '筛选模式';}, this);
+  this.optionsTitle = ko.observable();
   // 输入的内容
   this.inputText = ko.observable();
   // 按钮的文字
-  this.btnText = ko.computed(function(){return (this.mode = 'search') ? '搜索' : '筛选'}, this);
+  this.btnText = ko.observable();
   // 按钮的功能
-  this.btnFunction = (this.mode = 'search') ? function(){SearchBox.textSearchPlaces()} : function(){alert('筛选')};
+  this.btnFunction = function(){this.searchBtn()};
+  this.searchBtn = function(){SearchBox.textSearchPlaces(this.inputText())};
+  this.flitBtn = function(){alert('筛选 '+this.inputText())};
+  // 模式转换后，切换内容
+  this.mode.subscribe(function(mode) {
+    if(mode == 'search') {
+      self.optionsTitle('搜索模式');
+      self.btnText('搜索');
+      self.btnFunction = function() {self.searchBtn()};
+    } else if(mode == 'filt') {
+      self.optionsTitle('筛选模式');
+      self.btnText('筛选');
+      self.btnFunction = function() {self.flitBtn()};
+    }
+  });
+  // 设置初始模式
+  this.mode('search');
+
   // 展现的列表
   this.locationList = Location.locations;
 

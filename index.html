@@ -18,7 +18,7 @@
     <div class="container">
     
       <div class="options-box" data-bind="visible: optionsVisible">
-        <header data-bind="text: optionsTitle">
+        <header data-bind="text: optionsTitle, click: toggleMode">
         </header>
         <div class="search-box">
           <input id="search-text" type="text" placeholder="输入地点" data-bind="textInput: inputText" >
